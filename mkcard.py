@@ -31,16 +31,9 @@ class NewNote:
     '''
     New card that (possibly) will be added to the deck
     '''
-    def __init__(self, deck):
+    def __init__(self, deck, sentence):
         self.deck = deck
-        self.sentence = ask_sentence()
-
-    def ask_to_add(self):
-        add = input('Would you like to add this note to '
-                    + self.deck + '? [y/n]: ')
-        while add not in ['y', 'n']:
-            add = input('Answer \'y\' or \'n\', please: ')
-        return add
+        self.sentence = sentence
 
 
 class AdvancedNote(NewNote):
@@ -102,13 +95,12 @@ class BeginIntermNote(NewNote):
     Subclass for notes of languages
     in which the learner is beginner/intermediate
     '''
-    def __init__(self, deck):
-        super().__init__(deck)
-        self.tr_sentence = ask_translated_sentence()
-        self.words = ask_words()
+    def __init__(self, deck, sentence, tr_sentence, words, tr_words):
+        super().__init__(deck, sentence)
+        self.tr_sentence = tr_sentence
+        self.words = words
         self.words_list = listify(self.words)
-        self.tr_words_list = ask_tr_words()
-        self.back = ask_back()
+        self.tr_words_list = listify(tr_words)
 
     def boldify(self):
         for word in self.words_list:
@@ -121,71 +113,19 @@ class BeginIntermNote(NewNote):
                                       '<b>'+word+'</b>',
                                       self.tr_sentence)
 
-    def print_preview(self):
-        print('Card\'s preview:')
-        print('-Front:')
-        print(self.sentence
-              + '\n\n'
-              + self.tr_sentence)
-        print('-Back:')
-        print(self.back)
-        print('-Words:')
-        print(self.words)
 
-    def add(self):
-        if self.ask_to_add() == 'y':
-            invoke('addNote', note={'deckName': self.deck,
-                                    'modelName': 'Beginner -- Intermediate',
-                                    'fields': {'Front': (self.sentence
-                                                         + '<br><br>' +
-                                                         self.tr_sentence),
-                                               'Back': self.back,
-                                               'Word': self.words}})
-            print('Succesfully added!')
-        else:
-            print('Note deleted!')
-
-
-def ask_sentence():
-    return input('Enter original sentence: ')
-
-
-def ask_translated_sentence():
-    return input('Enter translated sentence: ')
-
-
-def ask_words():
-    return input('Enter target word(s): ')
+def add(deck, front, back, words):
+    invoke('addNote', note={'deckName': deck,
+                            'modelName': 'Beginner -- Intermediate',
+                            'fields': {'Front': front,
+                                       'Back': back,
+                                       'Word': words}})
+    print('Succesfully added!')
 
 
 def listify(words):
     return re.split(' +', words)  # ' +' for one or more occuring
     # spaces as delimiter
-
-
-def ask_tr_words():
-    tr_words = input('Enter translated target word(s): ')
-    return listify(tr_words)
-
-
-def ask_back():
-    back = '<b>'
-    back += input('Enter card\'s back: ')+'</b>'
-    return back
-
-
-def ask_ipa():
-    ipa = '<br><br><b>'
-    ipa += input('Enter words\' transcription (if necessary): ')+'</b>'
-    if ipa == '<br><br><b></b>':  # in case of no transcription was added
-        ipa = ''
-    return ipa
-
-
-def ask_meaning():
-    meaning = '<b>'
-    meaning += input('Enter word\'s (s\') meaning: ')+'</b>'
-    return meaning
 
 
 def hide_words(sentence, words_list):
@@ -195,60 +135,3 @@ def hide_words(sentence, words_list):
                         (len(word) - 2)*'x' +
                         word[-1]+'</b>', hidden)
     return hidden
-
-
-def ask_deck():
-    '''
-    Ask to the user to which deck the note will be added
-    '''
-    result = invoke('deckNames')
-    deck_ok = False
-    while not deck_ok:
-        deck_name = input('Enter deck name: ')
-        deck_ok = deck_name in result
-        if not deck_ok:
-            print("Deck \"" + deck_name + "\" wasn't found. Try again")
-    return deck_name
-
-
-class Program:
-    '''
-    The main program
-    '''
-    def __init__(self):
-        self.add_note = True
-        self.deck = None
-        self.advanced_decks = ['English']
-
-    def start(self):
-        print("In order to leave this program press Ctrl-C")
-        self.deck = ask_deck()
-
-    def add_new_note(self):
-        if self.deck in self.advanced_decks:
-            note = AdvancedNote(self.deck)
-        else:
-            note = BeginIntermNote(self.deck)
-        note.boldify()
-        note.print_preview()
-        note.add()
-
-    def ask_for_another_note(self):
-        add = input('Would you like to add another note to '
-                    + self.deck + '? [y/n]: ')
-        while add not in ['y', 'n']:
-            add = input('Answer \'y\' or \'n\', please: ')
-        if add == 'y':
-            return True         # for add another card
-        return False            # for ending while loop in prog.start
-
-
-def main():
-    prog = Program()
-    prog.start()
-    while prog.ask_for_another_note():
-        prog.add_new_note()
-
-
-if __name__ == '__main__':
-    main()
