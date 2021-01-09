@@ -26,14 +26,23 @@ class Program(QWidget):
         super().__init__()
 
         self.grid = None
-        self.deck = LineBox('Deck')
-        self.sentence = LineBox('Sentence')
-        self.tr_sentence = LineBox('Translated Sentence')
-        self.words = LineBox('Words')
-        self.tr_words = LineBox('Translated Words')
-        self.front = TextBox('Front')
-        self.back = TextBox('Back')
+        self.deck = LineBox('Deck', self.change_processor)
+        self.sentence = LineBox('Sentence', self.change_processor)
+        self.tr_sentence = LineBox('Translated Sentence', self.change_processor)
+        self.words = LineBox('Words', self.change_processor)
+        self.tr_words = LineBox('Translated Words', self.change_processor)
+        self.front = TextBox('Front', self.change_processor)
+        self.back = TextBox('Back', self.change_processor)
         self.back.edit.setFont(QFont('Helvetica', 15, weight=75))
+        self.state = {
+            'deck': '',
+            'tr_sentence': '',
+            'sentence': '',
+            'words': '',
+            'tr_words': '',
+            'front': '',
+            'back': ''
+        }
         self.preview_btn = None
         self.add_btn = None
         self.transl_btn = None
@@ -103,38 +112,42 @@ class Program(QWidget):
         self.clear_btn.clicked.connect(self.button_processor)
         return grid_i + 1
 
+    def change_processor(self):
+        self.state["deck"] = self.deck.edit.text()
+        self.state["sentence"] = self.sentence.edit.text()
+        self.state["tr_words"] = self.tr_words.edit.text()
+        self.state["front"] = self.front.edit.toHtml()
+        self.state["back"] = '<b>' + self.back.edit.toPlainText() + '</b>'
+        self.state["words"] = self.words.edit.text()
+        self.state["tr_sentence"] = self.tr_sentence.edit.text()
+
     def button_processor(self):
         sender = self.sender()
         if sender.text() == 'Translate':
-            orig = self.sentence.edit.text()
-            self.sentence.edit.setText(orig)
-            words = self.words.edit.text()
-            self.words.edit.setText(words)
-            translation = self.translator.translate(orig, dest='en')
-            tr_words = self.translator.translate(words, dest='en')
+            self.change_processor()
+            translation = self.translator.translate(
+                self.state["sentence"], dest='en')
+            tr_words = self.translator.translate(
+                self.state["words"], dest='en')
             self.tr_sentence.edit.setText(translation.text)
-            self.tr_sentence.edit.displayText()
             self.tr_words.edit.setText(tr_words.text)
-            self.tr_words.edit.displayText()
         if sender.text() == 'Preview':
-            deck = self.deck.edit.text()
-            sentence = self.sentence.edit.text()
-            translation = self.tr_sentence.edit.text()
-            words = self.words.edit.text()
-            tr_words = self.tr_words.edit.text()
-            note = mkcard.BeginIntermNote(deck, sentence, translation,
-                                          words, tr_words)
+            self.change_processor()
+            note = mkcard.BeginIntermNote(self.state["deck"],
+                                          self.state["sentence"],
+                                          self.state["tr_sentence"],
+                                          self.state["words"],
+                                          self.state["tr_words"])
             note.boldify()
             self.front.edit.setHtml(note.sentence + '<br><br>'
                                     + note.tr_sentence)
-            self.back.edit.setText(' -> ' + words)
+            self.back.edit.setText(' -> ' + self.state["words"])
+            self.change_processor()
         if sender.text() == 'Add Note':
-            deck = self.deck.edit.text()
-            front = self.front.edit.toHtml()
-            back = '<b>'
-            back += self.back.edit.toPlainText() + '</b>'
-            words = self.words.edit.text()
-            mkcard.add(deck, front, back, words)
+            mkcard.add(self.state["deck"],
+                       self.state["front"],
+                       self.state["back"],
+                       self.state["words"])
             self.clear_fields()
         if sender.text() == 'Clear All':
             self.clear_fields()
@@ -143,12 +156,13 @@ class Program(QWidget):
 
 
 class TextBox:
-    def __init__(self, name):
+    def __init__(self, name, update_vars):
 
         name_html = ('<center><h2>' + name + '</h2></center>')
         self.label = QLabel(name_html)
         self.label.setTextFormat(2)
         self.edit = QTextEdit()
+        self.edit.textChanged.connect(update_vars)
         self.edit.setFont(QFont('Helvetica', 15))
 
     def add(self, line, grid):
@@ -158,12 +172,13 @@ class TextBox:
 
 
 class LineBox:
-    def __init__(self, name):
+    def __init__(self, name, update_vars):
 
         name_html = ('<center><h2>' + name + '</h2></center>')
         self.label = QLabel(name_html)
         self.label.setTextFormat(2)
         self.edit = QLineEdit()
+        self.edit.textChanged.connect(update_vars)
         self.edit.setFont(QFont('Helvetica', 15))
 
     def add(self, line, grid):
