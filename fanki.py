@@ -123,8 +123,8 @@ class Program(QWidget):
 
     def button_processor(self):
         sender = self.sender()
+        self.change_processor()
         if sender.text() == 'Translate':
-            self.change_processor()
             translation = self.translator.translate(
                 self.state["sentence"], dest='en')
             tr_words = self.translator.translate(
@@ -132,7 +132,6 @@ class Program(QWidget):
             self.tr_sentence.edit.setText(translation.text)
             self.tr_words.edit.setText(tr_words.text)
         if sender.text() == 'Preview':
-            self.change_processor()
             note = mkcard.BeginIntermNote(self.state["deck"],
                                           self.state["sentence"],
                                           self.state["tr_sentence"],
@@ -142,17 +141,24 @@ class Program(QWidget):
             self.front.edit.setHtml(note.sentence + '<br><br>'
                                     + note.tr_sentence)
             self.back.edit.setText(' -> ' + self.state["words"])
-            self.change_processor()
         if sender.text() == 'Add Note':
+            front, tr_orig, orig_sent = mkcard.pre_make_fields(
+                self.state["sentence"], self.state["tr_sentence"],
+                self.state["words"], self.state["tr_words"]
+            )
+
             mkcard.add(self.state["deck"],
-                       self.state["front"],
+                       front,
                        self.state["back"],
-                       self.state["words"])
+                       self.state["words"],
+                       orig_sent,
+                       tr_orig)
             self.clear_fields()
         if sender.text() == 'Clear All':
             self.clear_fields()
             self.front.edit.clear()
             self.back.edit.clear()
+        self.change_processor()
 
 
 class TextBox:
