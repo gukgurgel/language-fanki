@@ -114,12 +114,33 @@ class BeginIntermNote(NewNote):
                                       self.tr_sentence)
 
 
-def add(deck, front, back, words):
+def pre_make_fields(sentence, tr_sentence, words, tr_words):
+    front_sentence = sentence
+    orig_sent = sentence
+    for word in listify(words):
+        front_sentence = re.sub(r'\b' + word + r'\b',
+                                '{{c1::' + word + '}}',
+                                front_sentence)
+
+        orig_sent = re.sub(r'\b' + word + r'\b',
+                           '<b>' + word + '</b>',
+                           orig_sent)
+
+    for word in listify(tr_words):
+        tr_sentence = re.sub(r'\b' + word + r'\b',
+                             '<b>' + word + '</b>',
+                             tr_sentence)
+    return (front_sentence + '<br><br>' + tr_sentence, orig_sent, tr_sentence)
+
+
+def add(deck, front, back, words, orig_sent, tr_orig):
     invoke('addNote', note={'deckName': deck,
                             'modelName': 'Beginner -- Intermediate',
                             'fields': {'Front': front,
                                        'Back': back,
-                                       'Word': words}})
+                                       'Hint': words,
+                                       'OriginalSentence': orig_sent,
+                                       'Translation': tr_orig}})
     print('Succesfully added!')
 
 

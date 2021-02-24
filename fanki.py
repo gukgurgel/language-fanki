@@ -142,10 +142,17 @@ class Program(QWidget):
                                     + note.tr_sentence)
             self.back.edit.setText(' -> ' + self.state["words"])
         if sender.text() == 'Add Note':
+            front, tr_orig, orig_sent = mkcard.pre_make_fields(
+                self.state["sentence"], self.state["tr_sentence"],
+                self.state["words"], self.state["tr_words"]
+            )
+
             mkcard.add(self.state["deck"],
-                       self.state["front"],
+                       front,
                        self.state["back"],
-                       self.state["words"])
+                       self.state["words"],
+                       orig_sent,
+                       tr_orig)
             self.clear_fields()
         if sender.text() == 'Clear All':
             self.clear_fields()
