@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.8
+#!/usr/bin/env python3.9
 # coding=UTF-8
 '''
 created by Gustavo Korzune Gurgel
