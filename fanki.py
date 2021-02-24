@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import (QApplication, QLabel, QWidget, QLineEdit,
                              QTextEdit, QGridLayout, QPushButton, QFrame,
                              QDesktopWidget)
 from PyQt5.QtGui import QFont
-from googletrans import Translator
+import translators as ts
 import mkcard
 
 
@@ -47,7 +47,6 @@ class Program(QWidget):
         self.add_btn = None
         self.transl_btn = None
         self.clear_btn = None
-        self.translator = Translator(service_urls=['translate.googleapis.com'])
         self.initUI()
 
     def initUI(self):
@@ -125,12 +124,12 @@ class Program(QWidget):
         sender = self.sender()
         self.change_processor()
         if sender.text() == 'Translate':
-            translation = self.translator.translate(
-                self.state["sentence"], dest='en')
-            tr_words = self.translator.translate(
-                self.state["words"], dest='en')
-            self.tr_sentence.edit.setText(translation.text)
-            self.tr_words.edit.setText(tr_words.text)
+            translation = ts.google(
+                self.state["sentence"], to_language='en')
+            tr_words = ts.google(
+                self.state["words"], to_language='en')
+            self.tr_sentence.edit.setText(translation)
+            self.tr_words.edit.setText(tr_words)
         if sender.text() == 'Preview':
             note = mkcard.BeginIntermNote(self.state["deck"],
                                           self.state["sentence"],
