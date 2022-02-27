@@ -26,13 +26,14 @@ class Program(QWidget):
         super().__init__()
 
         self.grid = None
-        self.deck = LineBox('Deck', self.change_processor)
-        self.sentence = LineBox('Sentence', self.change_processor)
-        self.tr_sentence = LineBox('Translated Sentence', self.change_processor)
-        self.words = LineBox('Words', self.change_processor)
-        self.tr_words = LineBox('Translated Words', self.change_processor)
-        self.front = TextBox('Front', self.change_processor)
-        self.back = TextBox('Back', self.change_processor)
+        self.deck = LineBox('Deck', self.update_status)
+        self.sentence = LineBox('Sentence', self.update_status)
+        self.tr_sentence = LineBox('Translated Sentence', self.update_status)
+        self.words = LineBox('Words', self.update_status)
+        self.tr_words = LineBox('Translated Words', self.update_status)
+        self.synonyms = LineBox('Synonyms', self.update_status)
+        self.front = TextBox('Front', self.update_status)
+        self.back = TextBox('Back', self.update_status)
         self.back.edit.setFont(QFont('Helvetica', 15, weight=75))
         self.state = {
             'deck': '',
@@ -40,6 +41,7 @@ class Program(QWidget):
             'sentence': '',
             'words': '',
             'tr_words': '',
+            'synonyms': '',
             'front': '',
             'back': ''
         }
@@ -59,6 +61,7 @@ class Program(QWidget):
         grid_i = self.deck.add(grid_i, self.grid)
         grid_i = self.sentence.add(grid_i, self.grid)
         grid_i = self.words.add(grid_i, self.grid)
+        grid_i = self.synonyms.add(grid_i, self.grid)
         grid_i = self.add_translation_btn(grid_i)
         grid_i = self.tr_sentence.add(grid_i, self.grid)
         grid_i = self.tr_words.add(grid_i, self.grid)
@@ -80,6 +83,7 @@ class Program(QWidget):
     def clear_fields(self):
         self.sentence.edit.clear()
         self.words.edit.clear()
+        self.synonyms.edit.clear()
         self.tr_sentence.edit.clear()
         self.tr_words.edit.clear()
 
@@ -111,9 +115,10 @@ class Program(QWidget):
         self.clear_btn.clicked.connect(self.button_processor)
         return grid_i + 1
 
-    def change_processor(self):
+    def update_status(self):
         self.state["deck"] = self.deck.edit.text()
         self.state["sentence"] = self.sentence.edit.text()
+        self.state["synonyms"] = self.synonyms.edit.text()
         self.state["tr_words"] = self.tr_words.edit.text()
         self.state["front"] = self.front.edit.toHtml()
         self.state["back"] = '<b>' + self.back.edit.toPlainText() + '</b>'
@@ -123,7 +128,7 @@ class Program(QWidget):
     def button_processor(self):
         sender = self.sender()
         if sender.text() == 'Translate':
-            self.change_processor()
+            #self.change_processor()
             translation = ts.google(
                 self.state["sentence"], to_language='en')
             tr_words = ts.google(
@@ -131,23 +136,34 @@ class Program(QWidget):
             self.tr_sentence.edit.setText(translation)
             self.tr_words.edit.setText(tr_words)
         if sender.text() == 'Preview':
-            self.change_processor()
+            #self.change_processor()
             note = mkcard.BeginIntermNote(self.state["deck"],
                                           self.state["sentence"],
                                           self.state["tr_sentence"],
                                           self.state["words"],
-                                          self.state["tr_words"])
+                                          self.state["tr_words"],
+                                          self.state["synonyms"])
             note.boldify()
             self.front.edit.setHtml(note.sentence + '<br><br>'
-                                    + note.tr_sentence)
+                                    + note.tr_sentence + '<br><br>'
+                                    + "<b>Synonmys</b>: " +
+                                    note.synonyms)
             self.back.edit.setText(' -> ' + self.state["words"])
-            self.change_processor()
+            #self.change_processor()
         if sender.text() == 'Add Note':
+            front, back, synonyms = mkcard.pre_make_fields(
+                self.state["sentence"], self.state["tr_sentence"],
+                self.state["words"], self.state["tr_words"],
+                self.state["synonyms"]
+            )
+
             mkcard.add(self.state["deck"],
-                       self.state["front"],
+                       front,
                        self.state["back"],
-                       self.state["words"])
+                       synonyms)
+
             self.clear_fields()
+
         if sender.text() == 'Clear All':
             self.clear_fields()
             self.front.edit.clear()

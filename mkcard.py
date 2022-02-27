@@ -73,18 +73,18 @@ class AdvancedNote(NewNote):
 
     def add(self):
         if self.ask_to_add() == 'y':
-            invoke('addNotes', notes={'deckName': self.deck,
-                                      'modelName': 'Advanced (deck->meaning)',
-                                      'fields': {'Sentence': self.sentence,
-                                                 'IPA': self.ipa,
-                                                 'Meaning': self.meaning}})
-            invoke('addNotes', notes={'deckName': self.deck,
-                                      'modelName': 'Advanced (meaning->type)',
-                                      'fields': {'Sentence':
-                                                 self.hidden_sentence,
-                                                 'IPA': self.ipa,
-                                                 'Word': self.words,
-                                                 'Meaning': self.meaning}})
+            invoke('addNote', note={'deckName': self.deck,
+                                    'modelName': 'Advanced (deck->meaning)',
+                                    'fields': {'Sentence': self.sentence,
+                                               'IPA': self.ipa,
+                                               'Meaning': self.meaning}})
+            invoke('addNote', note={'deckName': self.deck,
+                                    'modelName': 'Advanced (meaning->type)',
+                                    'fields': {'Sentence':
+                                               self.hidden_sentence,
+                                               'IPA': self.ipa,
+                                               'Word': self.words,
+                                               'Meaning': self.meaning}})
             print('Succesfully added!')
         else:
             print('Note deleted!')
@@ -95,12 +95,13 @@ class BeginIntermNote(NewNote):
     Subclass for notes of languages
     in which the learner is beginner/intermediate
     '''
-    def __init__(self, deck, sentence, tr_sentence, words, tr_words):
+    def __init__(self, deck, sentence, tr_sentence, words, tr_words, synonyms):
         super().__init__(deck, sentence)
         self.tr_sentence = tr_sentence
         self.words = words
         self.words_list = listify(self.words)
         self.tr_words_list = listify(tr_words)
+        self.synonyms = synonyms
 
     def boldify(self):
         for word in self.words_list:
@@ -114,7 +115,7 @@ class BeginIntermNote(NewNote):
                                       self.tr_sentence)
 
 
-def pre_make_fields(sentence, tr_sentence, words, tr_words):
+def pre_make_fields(sentence, tr_sentence, words, tr_words, synonyms):
     front_sentence = sentence
     orig_sent = sentence
     for word in listify(words):
@@ -130,19 +131,22 @@ def pre_make_fields(sentence, tr_sentence, words, tr_words):
         tr_sentence = re.sub(r'\b' + word + r'\b',
                              '<b>' + word + '</b>',
                              tr_sentence)
-    return (front_sentence + '<br><br>' + tr_sentence, orig_sent, tr_sentence)
+
+    synonyms = '<b>Synonyms</b>: ' + synonyms
+
+    front = front_sentence + '<br><br>' + tr_sentence
+    back = orig_sent + '<br><br>' + tr_sentence
+
+    return (front, back, synonyms)
 
 
-def add(deck, front, back, words, orig_sent, tr_orig):
-    answer = invoke('addNote', note={'deckName': deck,
-                                        'modelName': 'Beginner -- Intermediate',
-                                        'fields': {'Front': front,
-                                                    'Back': back,
-                                                    'Hint': words,
-                                                    'OriginalSentence': orig_sent,
-                                                    'Translation': tr_orig},
-                                        'tags' : ["yomichan"]})
-    print(answer)
+def add(deck, front, back, synonyms):
+    invoke('addNote', note={'deckName': deck,
+                            'modelName': 'Lückentext - Deutsch - Beginner -- Intermediate',
+                            'fields': {'Front': front,
+                                       'Back': back,
+                                       'Synonyms' : synonyms}})
+    print('Succesfully added!')
 
 
 def listify(words):
