@@ -3,7 +3,6 @@
 '''
 created by Gustavo Korzune Gurgel
 '''
-import re
 import sys
 from PyQt5.QtWidgets import (QApplication, QLabel, QWidget, QLineEdit,
                              QTextEdit, QGridLayout, QPushButton, QFrame,
