@@ -64,34 +64,6 @@ class Program(QWidget):
     '''
     def initUI(self):
 
-        mid_point = QDesktopWidget().availableGeometry().center()
-        grid_i = 0
-
-        self.grid = QGridLayout()
-        
-        grid_i = self.add_change_mode_btn(grid_i)
-        grid_i = self.deck.add(grid_i, self.grid)
-        grid_i = self.sentence.add(grid_i, self.grid)
-        grid_i = self.words.add(grid_i, self.grid)
-        grid_i = self.synonyms.add(grid_i, self.grid)
-        grid_i = self.add_translation_btn(grid_i)
-        grid_i = self.tr_sentence.add(grid_i, self.grid)
-        grid_i = self.tr_words.add(grid_i, self.grid)
-        self.grid.addWidget(QHLine(), grid_i, 0)
-        grid_i += 1
-        grid_i = self.add_preview_btn(grid_i)
-        grid_i = self.front.add(grid_i, self.grid)
-        grid_i = self.back.add(grid_i, self.grid)
-        grid_i = self.add_add_btn(grid_i)
-        grid_i = self.add_clear_btn(grid_i)
-
-        self.setLayout(self.grid)
-        self.setGeometry(mid_point.x(),
-                         0,
-                         int(mid_point.x() / 2),
-                         mid_point.y())
-        self.show()
-
     def clear_fields(self):
         self.sentence.edit.clear()
         self.words.edit.clear()
@@ -258,21 +230,9 @@ class Lingvist(LayoutType):
         return LingvistAdvanced(grid)
 
     def load(self, grid, grid_i, program):
-        '''
-        self.objects_list = [
-                'Deck', 'Sentence', 'Translated Sentence',
-                'Words', 'Translated Words', 'Synonyms',
-                'Translator'
-                ]
 
-        grid_i = LineBox('Sentence', program).add(grid_i, grid)
-        grid_i = LineBox('Words', program).add(grid_i, grid)
-        grid_i = LineBox('Synonyms', program).add(grid_i, grid)
-        grid_i = Button('Translator', program).add(grid_i, grid) 
-        grid_i = LineBox('Translated Sentence', program).add(grid_i, grid)
-        grid_i = LineBox('Translated Words', program).add(grid_i, grid)
-        '''
-
+        # the order of the objects in the list follows the order in which
+        # the objects are going to be shown
         self.objects_list = [
                 LineBox('Sentence', program), LineBox('Words', program),
                 LineBox('Synonyms', program), Button('Translator', program),
@@ -300,10 +260,24 @@ class LingvistAdvanced(LayoutType):
         self.type = 'LingvistAdvanced'
 
     def load(self, grid, grid_i, program):
-        pass
+        
+        self.objects_list = [
+                LineBox('Sentence', program), LineBox('Words', program),
+                LineBox('Synonyms', program), LineBox('Link of Image', program)
+                ]
+        
+        for obj in self.objects_list:
+            grid_i = obj.add(grid_i, grid)
 
     def change(self, grid):
+        return Lingvist(grid)
+
+    def preview(self, layout, program):
         pass
+
+    def add_note(self, layout, program):
+        pass
+
 
 
 class Button(QPushButton):
@@ -338,8 +312,8 @@ class Button(QPushButton):
 
     def change_mode(self, layout, program):
         layout.now.clean()
-        #layout.change()
-        #layout.now.load(layout, layout.i_end_of_header, program)
+        layout.change()
+        layout.now.load(layout, layout.i_end_of_header, program)
 
     def translate(self, layout, program):
         pass
