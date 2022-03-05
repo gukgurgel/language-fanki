@@ -235,7 +235,7 @@ class Lingvist(LayoutType):
         # the objects are going to be shown
         self.objects_list = [
                 LineBox('Sentence', program), LineBox('Words', program),
-                LineBox('Synonyms', program), Button('Translator', program),
+                LineBox('Synonyms', program), Button('Translate', program),
                 LineBox('Translated Sentence', program), 
                 LineBox('Translated Words', program)
                 ]
@@ -301,13 +301,13 @@ class Button(QPushButton):
             layout = program.layout
             pressed = sender.text()
             switcher = {
-                    'Change Mode' : self.change_mode(layout, program),
-                    'Translate' : self.translate(layout, program),
-                    'Preview' : layout.now.preview(layout, program),
-                    'Add Note' : layout.now.add_note(layout, program)
+                    'Change Mode' : self.change_mode,
+                    'Translate' : self.translate,
+                    'Preview' : layout.now.preview,
+                    'Add Note' : layout.now.add_note
                     }
 
-            switcher.get(pressed)
+            switcher.get(pressed)(layout, program)
 
 
     def change_mode(self, layout, program):
@@ -316,7 +316,16 @@ class Button(QPushButton):
         layout.now.load(layout, layout.i_end_of_header, program)
 
     def translate(self, layout, program):
-        pass
+        sentence = program.findChild(QWidget, "Sentence").text()
+        words = program.findChild(QWidget, "Words").text()
+        tr_sentence = ts.google(
+                sentence, to_language='en'
+                )
+        tr_words = ts.google(
+                words, to_language='en'
+                )
+        program.findChild(QWidget, "Translated Sentence").setText(tr_sentence)
+        program.findChild(QWidget, "Translated Words").setText(tr_words)
 
 class TextBox(QTextEdit):
     def __init__(self, name, program):
