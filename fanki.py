@@ -8,6 +8,7 @@ from PyQt5.QtWidgets import (QApplication, QLabel, QWidget, QLineEdit,
                              QTextEdit, QGridLayout, QPushButton, QFrame,
                              QDesktopWidget)
 from PyQt5.QtGui import QFont
+from PyQt5.QtCore import (Qt)
 import translators as ts
 import mkcard
 
@@ -219,10 +220,6 @@ class Layout(QGridLayout):
     def change(self):
         self.now = self.now.change(self)
 
-    def clean(self):
-        for i in range(self.grid.count()):
-            self.itemAt(i).widget().hide()
-
     def load_header(self, grid_i, program):
         grid_i = Button('Change Mode', program).add(grid_i, self)
         grid_i = LineBox('Deck', program).add(grid_i, self)
@@ -244,10 +241,14 @@ class LayoutType:
         self.objects_list = []
 
     def clean(self):
-        pass
+        for obj in self.objects_list:
+            obj.hide()
+
 
 
 class Lingvist(LayoutType):
+
+    # grid == layout
 
     def __init__(self, grid):
         super().__init__(grid)
@@ -257,6 +258,7 @@ class Lingvist(LayoutType):
         return LingvistAdvanced(grid)
 
     def load(self, grid, grid_i, program):
+        '''
         self.objects_list = [
                 'Deck', 'Sentence', 'Translated Sentence',
                 'Words', 'Translated Words', 'Synonyms',
@@ -269,8 +271,27 @@ class Lingvist(LayoutType):
         grid_i = Button('Translator', program).add(grid_i, grid) 
         grid_i = LineBox('Translated Sentence', program).add(grid_i, grid)
         grid_i = LineBox('Translated Words', program).add(grid_i, grid)
+        '''
 
+        self.objects_list = [
+                LineBox('Sentence', program), LineBox('Words', program),
+                LineBox('Synonyms', program), Button('Translator', program),
+                LineBox('Translated Sentence', program), 
+                LineBox('Translated Words', program)
+                ]
+        
+        for obj in self.objects_list:
+            grid_i = obj.add(grid_i, grid)
+
+        
         return grid_i
+
+    def preview(self, grid, program):
+        pass
+
+    def add_note(self, grid, program):
+        pass
+
 
 
 class LingvistAdvanced(LayoutType):
@@ -308,8 +329,8 @@ class Button(QPushButton):
             switcher = {
                     'Change Mode' : self.change_mode(layout, program),
                     'Translate' : self.translate(layout, program),
-                    'Preview' : self.preview(layout, program),
-                    'Add Note' : self.add_note(layout, program)
+                    'Preview' : layout.now.preview(layout, program),
+                    'Add Note' : layout.now.add_note(layout, program)
                     }
 
             switcher.get(pressed)
@@ -321,12 +342,6 @@ class Button(QPushButton):
         #layout.now.load(layout, layout.i_end_of_header, program)
 
     def translate(self, layout, program):
-        pass
-
-    def preview(self, layout, program):
-        pass
-
-    def add_note(self, layout, program):
         pass
 
 class TextBox(QTextEdit):
@@ -346,6 +361,9 @@ class TextBox(QTextEdit):
         grid.addWidget(self, line + 1, 0)
         return line + 2
 
+    def hide(self):
+        self.label.hide()
+        self.super().hide()
 
 class LineBox(QLineEdit):
     def __init__(self, name, program):
@@ -354,6 +372,8 @@ class LineBox(QLineEdit):
         name_html = ('<center><h3>' + name + '</h3></center>')
         self.label = QLabel(name_html)
         self.label.setTextFormat(2)
+        self.label.setParent(program)
+        self.label.setObjectName(name)
         self.setObjectName(name)
         self.setFont(QFont('Helvetica', 15))
 
@@ -361,6 +381,13 @@ class LineBox(QLineEdit):
         grid.addWidget(self.label, line, 0)
         grid.addWidget(self, line + 1, 0)
         return line + 2
+
+    def hide(self):
+        self.label.hide()
+        self.orig_hide()
+
+    def orig_hide(self):
+        return super().hide()
 
 
 def main():
