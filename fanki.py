@@ -7,10 +7,10 @@ import sys
 from PyQt5.QtWidgets import (QApplication, QLabel, QWidget, QLineEdit,
                              QTextEdit, QGridLayout, QPushButton, QFrame,
                              QDesktopWidget)
-from PyQt5.QtGui import QFont
-from PyQt5.QtCore import (Qt)
+from PyQt5.QtGui import (QFont, QImageReader, QTextDocument)
+from PyQt5.QtCore import (Qt, QUrl, QFileInfo, QFile, QIODevice)
 import translators as ts
-import mkcard
+import note
 
 
 class QHLine(QFrame):
@@ -25,87 +25,13 @@ class Program(QWidget):
     def __init__(self):
         super().__init__()
 
-        self.layout = None
-
-        '''
-        self.grid = None
-        self.deck = LineBox('Deck', self)
-        self.sentence = LineBox('Sentence', self)
-        self.tr_sentence = LineBox('Translated Sentence', self)
-        self.words = LineBox('Words', self)
-        self.tr_words = LineBox('Translated Words', self)
-        self.synonyms = LineBox('Synonyms', self)
-        self.front = TextBox('Front', self)
-        self.back = TextBox('Back', self)
-        self.back.edit.setFont(QFont('Helvetica', 15, weight=75))
-        self.state = {
-            'deck': '',
-            'tr_sentence': '',
-            'sentence': '',
-            'words': '',
-            'tr_words': '',
-            'synonyms': '',
-            'front': '',
-            'back': ''
-        }
-        self.preview_btn = None
-        self.add_btn = None
-        self.transl_btn = None
-        self.change_mode_btn = None
-        self.clear_btn = None
-        self.initUI()
-        '''
+        self.layout = Layout(self)
 
     def initUI(self):
-        self.layout = Layout(self)
         self.layout.load(self)
         self.show()
 
     '''
-    def initUI(self):
-
-    def clear_fields(self):
-        self.sentence.edit.clear()
-        self.words.edit.clear()
-        self.synonyms.edit.clear()
-        self.tr_sentence.edit.clear()
-        self.tr_words.edit.clear()
-
-    def add_change_mode_btn(self, grid_i):
-        self.change_mode_btn = QPushButton('Change Mode', self)
-        self.change_mode_btn.setFont(QFont('Helvetica', 15))
-        self.grid.addWidget(self.change_mode_btn, grid_i, 0)
-        self.change_mode_btn.clicked.connect(self.button_processor)
-        return grid_i + 1
-
-    def add_translation_btn(self, grid_i):
-        self.transl_btn = QPushButton('Translate', self)
-        self.transl_btn.setFont(QFont('Helvetica', 15))
-        self.grid.addWidget(self.transl_btn, grid_i, 0)
-        self.transl_btn.clicked.connect(self.button_processor)
-        return grid_i + 1
-
-    def add_preview_btn(self, grid_i):
-        self.preview_btn = QPushButton('Preview', self)
-        self.preview_btn.setFont(QFont('Helvetica', 15))
-        self.grid.addWidget(self.preview_btn, grid_i, 0)
-        self.preview_btn.clicked.connect(self.button_processor)
-        return grid_i + 1
-
-    def add_add_btn(self, grid_i):
-        self.add_btn = QPushButton('Add Note', self)
-        self.add_btn.setFont(QFont('Helvetica', 15))
-        self.grid.addWidget(self.add_btn, grid_i, 0)
-        self.add_btn.clicked.connect(self.button_processor)
-        return grid_i + 1
-
-    def add_clear_btn(self, grid_i):
-        self.clear_btn = QPushButton('Clear All', self)
-        self.clear_btn.setFont(QFont('Helvetica', 15))
-        self.grid.addWidget(self.clear_btn, grid_i, 0)
-        self.clear_btn.clicked.connect(self.button_processor)
-        return grid_i + 1
-
     def update_status(self):
         self.state["deck"] = self.deck.edit.text()
         self.state["sentence"] = self.sentence.edit.text()
@@ -118,14 +44,6 @@ class Program(QWidget):
 
     def button_processor(self):
         sender = self.sender()
-        if sender.text() == 'Translate':
-            #self.change_processor()
-            translation = ts.google(
-                self.state["sentence"], to_language='en')
-            tr_words = ts.google(
-                self.state["words"], to_language='en')
-            self.tr_sentence.edit.setText(translation)
-            self.tr_words.edit.setText(tr_words)
         if sender.text() == 'Preview':
             #self.change_processor()
             note = mkcard.BeginIntermNote(self.state["deck"],
@@ -203,8 +121,8 @@ class Layout(QGridLayout):
         # add line separating input fields from the note preview
 
         grid_i = Button('Preview', program).add(grid_i, self)
-        grid_i = TextBox('Front', program).add(grid_i, self)
-        grid_i = TextBox('Back', program).add(grid_i, self)
+        grid_i = TextBox('Missing Target Words', program).add(grid_i, self)
+        grid_i = TextBox('Full Sentence', program).add(grid_i, self)
         grid_i = Button('Add Note', program).add(grid_i, self)
 
 class LayoutType:
@@ -246,13 +164,6 @@ class Lingvist(LayoutType):
         
         return grid_i
 
-    def preview(self, grid, program):
-        pass
-
-    def add_note(self, grid, program):
-        pass
-
-
 
 class LingvistAdvanced(LayoutType):
     def __init__(self, grid):
@@ -263,7 +174,8 @@ class LingvistAdvanced(LayoutType):
         
         self.objects_list = [
                 LineBox('Sentence', program), LineBox('Words', program),
-                LineBox('Synonyms', program), LineBox('Link of Image', program)
+                LineBox('Definition', program), LineBox('Synonyms', program),
+                LineBox('Link to Image', program)
                 ]
         
         for obj in self.objects_list:
@@ -271,9 +183,6 @@ class LingvistAdvanced(LayoutType):
 
     def change(self, grid):
         return Lingvist(grid)
-
-    def preview(self, layout, program):
-        pass
 
     def add_note(self, layout, program):
         pass
@@ -295,19 +204,18 @@ class Button(QPushButton):
         return line + 1
 
     def processor(self):
-        program = self.program
-        sender = program.sender()
+        sender = self.program.sender()
         if sender != None:
-            layout = program.layout
+            layout = self.program.layout
             pressed = sender.text()
             switcher = {
                     'Change Mode' : self.change_mode,
                     'Translate' : self.translate,
-                    'Preview' : layout.now.preview,
-                    'Add Note' : layout.now.add_note
+                    'Preview' : self.make_preview,
+                    'Add Note' : self.add_note
                     }
 
-            switcher.get(pressed)(layout, program)
+            switcher.get(pressed)(layout, self.program)
 
 
     def change_mode(self, layout, program):
@@ -327,10 +235,20 @@ class Button(QPushButton):
         program.findChild(QWidget, "Translated Sentence").setText(tr_sentence)
         program.findChild(QWidget, "Translated Words").setText(tr_words)
 
+    def make_preview(self, layout, program):
+        preview = note.Preview(layout, program)
+        #front = program.findChild(QWidget, "Front")
+        program.findChild(QWidget, "Missing Target Words").setHtml(preview.front)
+        program.findChild(QWidget, "Full Sentence").setText(preview.back)
+
+    def add_note(self, layout, program):
+        pass
+
 class TextBox(QTextEdit):
     def __init__(self, name, program):
 
         super().__init__(parent=program)
+        self.setObjectName(name)
         name_html = ('<center><h2>' + name + '</h2></center>')
         self.label = QLabel(name_html)
         self.label.setTextFormat(2)
@@ -348,16 +266,48 @@ class TextBox(QTextEdit):
         self.label.hide()
         self.super().hide()
 
+    def canInsertFromMimeData(self, mime):
+        return (mime.hasImage() 
+                or mime.hasUrls() 
+                or self.super().canInsertFromMimeData(mime))
+
+    def insertFromMimeData(self, mime):
+
+        if mime.hasImage():
+            i = 1
+            url = QUrl("dropped_image_" + str(i))
+            i += 1
+            self.dropImage(url, mime.imageData())
+        elif mime.hasUrls():
+            for url in mime.urls():
+                info = QFileInfo.info(url.toLocalFile()) 
+                ext = info.suffix().lower().encode('latin-1')
+                if ext in QImageReader.supportedImageFormats():
+                    self.dropImage(url, info.filePath())
+                else:
+                    self.dropTextFile(url)
+        else:
+            self.super().insertFromMimeData(mime)
+
+
+    def dropImage(self, url, image):
+        if not image.isNull():
+            self.document().addResource(QTextDocument.ImageResource, url, image)
+            self.textCursor().insertImage(url.toString())
+
+    def dropTextFile(self, url):
+        file = QFile(url.toLocalFile())
+        if file.open(QIODevice.QReadOnly | QIODevice.QText):
+            self.textCursor().insertText(file.readAll())
+
 class LineBox(QLineEdit):
     def __init__(self, name, program):
 
         super().__init__(parent=program)
+        self.setObjectName(name)
         name_html = ('<center><h3>' + name + '</h3></center>')
         self.label = QLabel(name_html)
         self.label.setTextFormat(2)
-        self.label.setParent(program)
-        self.label.setObjectName(name)
-        self.setObjectName(name)
         self.setFont(QFont('Helvetica', 15))
 
     def add(self, line, grid):
