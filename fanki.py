@@ -8,186 +8,120 @@ from PyQt5.QtWidgets import (QApplication, QLabel, QWidget, QLineEdit,
                              QTextEdit, QGridLayout, QPushButton, QFrame,
                              QDesktopWidget)
 from PyQt5.QtGui import (QFont, QImageReader, QTextDocument)
-from PyQt5.QtCore import (Qt, QUrl, QFileInfo, QFile, QIODevice)
+from PyQt5.QtCore import (QUrl, QFileInfo, QFile, QIODevice)
 import translators as ts
+import cycle
 import note
-
-
-class QHLine(QFrame):
-    def __init__(self):
-        super().__init__()
-        self.setFrameShape(QFrame.HLine)
-        self.setFrameShadow(QFrame.Sunken)
 
 
 class Program(QWidget):
 
     def __init__(self):
         super().__init__()
-
         self.layout = Layout(self)
 
     def initUI(self):
         self.layout.load(self)
         self.show()
 
-    '''
-    def update_status(self):
-        self.state["deck"] = self.deck.edit.text()
-        self.state["sentence"] = self.sentence.edit.text()
-        self.state["synonyms"] = self.synonyms.edit.text()
-        self.state["tr_words"] = self.tr_words.edit.text()
-        self.state["front"] = self.front.edit.toHtml()
-        self.state["back"] = '<b>' + self.back.edit.toPlainText() + '</b>'
-        self.state["words"] = self.words.edit.text()
-        self.state["tr_sentence"] = self.tr_sentence.edit.text()
-
-    def button_processor(self):
-        sender = self.sender()
-        if sender.text() == 'Preview':
-            #self.change_processor()
-            note = mkcard.BeginIntermNote(self.state["deck"],
-                                          self.state["sentence"],
-                                          self.state["tr_sentence"],
-                                          self.state["words"],
-                                          self.state["tr_words"],
-                                          self.state["synonyms"])
-            note.boldify()
-            self.front.edit.setHtml(note.sentence + '<br><br>'
-                                    + note.tr_sentence + '<br><br>'
-                                    + "<b>Synonmys</b>: " +
-                                    note.synonyms)
-            self.back.edit.setText(' -> ' + self.state["words"])
-            #self.change_processor()
-        if sender.text() == 'Add Note':
-            front, back, synonyms = mkcard.pre_make_fields(
-                self.state["sentence"], self.state["tr_sentence"],
-                self.state["words"], self.state["tr_words"],
-                self.state["synonyms"]
-            )
-
-            mkcard.add(self.state["deck"],
-                       front,
-                       self.state["back"],
-                       synonyms)
-
-            self.clear_fields()
-
-        if sender.text() == 'Clear All':
-            self.clear_fields()
-            self.front.edit.clear()
-            self.back.edit.clear()
-
-        if sender.text() == 'Change Mode':
-            for i in range(self.grid.count()):
-                print(i)
-                self.grid.itemAt(i).widget().hide()
-                self.layout.change()
-    '''
-
 
 class Layout(QGridLayout):
     
     def __init__(self, program):
         super().__init__()
-        self.setObjectName('Layout')
-        self.now = Lingvist(self)
-        self.i_end_of_header = 0
-        mid_point = QDesktopWidget().availableGeometry().center()
-        program.setGeometry(mid_point.x(),
-                            0,
-                            int(mid_point.x() / 2),
-                            mid_point.y())
+        self.types = [Lingvist(self, program), LingvistAdvanced(self, program)]
+        '''
+        self.cycle = cycle.Cycle(types)
+        self.now = self.cycle.now
+        '''
+        self.now = self.types[0]
+        self.grid_i_after_header = 0
+        self.setSpacing(8)
 
     def load(self, program):
         grid_i = 0  # 'i' = row of the grid
         grid_i = self.load_header(grid_i, program)
-        self.i_end_of_header = grid_i
-        grid_i = self.now.load(self, grid_i, program)
-        self.load_footer(grid_i, program)
+        self.now.load_body(self)
+        self.types[1].clean()
         program.setLayout(self)
 
     def change(self):
-        self.now = self.now.change(self)
+        self.now.clean()
+        self.now = self.now.next()
+        self.now.load_body(self)
+        self.now.show()
 
     def load_header(self, grid_i, program):
         grid_i = Button('Change Mode', program).add(grid_i, self)
         grid_i = LineBox('Deck', program).add(grid_i, self)
+        self.grid_i_after_header = grid_i
         return grid_i
 
-    def load_footer(self, grid_i, program):
-        self.addWidget(QHLine(), grid_i, 0) 
-        grid_i += 1
-        # add line separating input fields from the note preview
-
-        grid_i = Button('Preview', program).add(grid_i, self)
-        grid_i = TextBox('Missing Target Words', program).add(grid_i, self)
-        grid_i = TextBox('Full Sentence', program).add(grid_i, self)
-        grid_i = Button('Add Note', program).add(grid_i, self)
 
 class LayoutType:
     def __init__(self, grid):
         self.grid = grid
         self.objects_list = []
+        self.preview_objects = []
 
     def clean(self):
         for obj in self.objects_list:
             obj.hide()
 
+    def show(self):
+        for obj in self.objects_list:
+            obj.show()
 
-
+    def load_body(self, grid):
+        grid_i = grid.grid_i_after_header
+        for obj in self.objects_list:
+            #grid_i = obj.add(grid_i, grid)
+            grid_i = obj.add(grid_i, self.grid)
+        return grid_i
+    
 class Lingvist(LayoutType):
 
-    # grid == layout
-
-    def __init__(self, grid):
+    def __init__(self, grid, program):
         super().__init__(grid)
         self.type = 'Lingvist'
-
-    def change(self, grid):
-        return LingvistAdvanced(grid)
-
-    def load(self, grid, grid_i, program):
-
-        # the order of the objects in the list follows the order in which
-        # the objects are going to be shown
         self.objects_list = [
                 LineBox('Sentence', program), LineBox('Words', program),
                 LineBox('Synonyms', program), Button('Translate', program),
-                LineBox('Translated Sentence', program), 
-                LineBox('Translated Words', program)
+                LineBox('Translated Sentence', program),
+                LineBox('Translated Words', program), Button('Preview', program),
+                HLine(), TextBox('Front', program), TextBox('Back', program),
+                Button('Add Note', program)
                 ]
-        
-        for obj in self.objects_list:
-            grid_i = obj.add(grid_i, grid)
 
-        
-        return grid_i
-
+    def next(self):
+        return self.grid.types[1]
 
 class LingvistAdvanced(LayoutType):
-    def __init__(self, grid):
+    def __init__(self, grid, program):
         super().__init__(grid)
         self.type = 'LingvistAdvanced'
-
-    def load(self, grid, grid_i, program):
-        
         self.objects_list = [
                 LineBox('Sentence', program), LineBox('Words', program),
                 LineBox('Definition', program), LineBox('Synonyms', program),
-                LineBox('Link to Image', program)
+                Button('Preview', program), HLine(), 
+                TextBox('Incomplete Sentence', program),
+                TextBox('Missing Words & Image', program),
+                Button('Add Note', program)
                 ]
-        
-        for obj in self.objects_list:
-            grid_i = obj.add(grid_i, grid)
 
-    def change(self, grid):
-        return Lingvist(grid)
+    def next(self):
+        return self.grid.types[0]
 
-    def add_note(self, layout, program):
-        pass
+class HLine(QFrame):
+    
+    def __init__(self):
+        super().__init__()
+        self.setFrameShape(QFrame.HLine)
+        self.setFrameShadow(QFrame.Sunken)
 
-
+    def add(self, line, layout):
+        layout.addWidget(self, line, 0) 
+        return line + 1
 
 class Button(QPushButton):
 
@@ -219,13 +153,11 @@ class Button(QPushButton):
 
 
     def change_mode(self, layout, program):
-        layout.now.clean()
         layout.change()
-        layout.now.load(layout, layout.i_end_of_header, program)
 
     def translate(self, layout, program):
-        sentence = program.findChild(QWidget, "Sentence").text()
-        words = program.findChild(QWidget, "Words").text()
+        sentence = str(program.findChild(QWidget, "Sentence").text())
+        words = str(program.findChild(QWidget, "Words").text())
         tr_sentence = ts.google(
                 sentence, to_language='en'
                 )
@@ -237,9 +169,7 @@ class Button(QPushButton):
 
     def make_preview(self, layout, program):
         preview = note.Preview(layout, program)
-        #front = program.findChild(QWidget, "Front")
-        program.findChild(QWidget, "Missing Target Words").setHtml(preview.front)
-        program.findChild(QWidget, "Full Sentence").setText(preview.back)
+        preview.make()
 
     def add_note(self, layout, program):
         pass
@@ -264,12 +194,22 @@ class TextBox(QTextEdit):
 
     def hide(self):
         self.label.hide()
-        self.super().hide()
+        self.orig_hide()
+
+    def orig_hide(self):
+        return super().hide()
+    
+    def show(self):
+        self.label.show()
+        self.orig_show()
+
+    def orig_show(self):
+        return super().show()
 
     def canInsertFromMimeData(self, mime):
         return (mime.hasImage() 
                 or mime.hasUrls() 
-                or self.super().canInsertFromMimeData(mime))
+                or super().canInsertFromMimeData(mime))
 
     def insertFromMimeData(self, mime):
 
@@ -287,7 +227,7 @@ class TextBox(QTextEdit):
                 else:
                     self.dropTextFile(url)
         else:
-            self.super().insertFromMimeData(mime)
+            super().insertFromMimeData(mime)
 
 
     def dropImage(self, url, image):
@@ -322,6 +262,12 @@ class LineBox(QLineEdit):
     def orig_hide(self):
         return super().hide()
 
+    def show(self):
+        self.label.show()
+        self.orig_show()
+
+    def orig_show(self):
+        return super().show()
 
 def main():
     app = QApplication(sys.argv)

@@ -6,10 +6,11 @@ class Preview:
 
     def __init__(self, layout, program):
         mode = layout.now.type
-        note = Note(mode, program)
-        self.front = note.prev_front
-        self.back = note.prev_back
+        self.note = Note(mode, program)
 
+    def make(self):
+        self.note.type.make_prev()
+        
 class Note:
 
     def __init__(self, mode, program):
@@ -18,11 +19,8 @@ class Note:
                 "LingvistAdvanced" : LingvistAdvancedNote
                 }
 
-        note = switch.get(mode)(program)
-        (self.front, self.back) = note.make_note()
-        (self.prev_front, self.prev_back)  = note.make_prev()
-
-
+        self.type = switch.get(mode)(program)
+        parsed_note = self.type.make_note()
 
 class LingvistNote(Note):
     
@@ -49,14 +47,16 @@ class LingvistNote(Note):
         front = sentence + '<br><br>' + tr_sentence
         back = ' -> ' + words
 
-        return (front, back)
+        program.findChild(QWidget, "Front").setHtml(front)
+        program.findChild(QWidget, "Back").setText(back)
+
 
     def make_note(self):
         program = self.program
 
         deck = program.findChild(QWidget, "Deck").text()
-        front = program.findChild(QWidget, "Missing Target Words").toHTML()
-        back = program.findChild(QWidget, "Full Sentence").toHTML()
+        front = program.findChild(QWidget, "Front").toHtml()
+        back = program.findChild(QWidget, "Back").toHtml()
         synonyms = '<b>Synonyms</b>: ' + program.findChild(QWidget, "Synonyms").text()
 
         note = {'deckName': deck,
@@ -73,7 +73,24 @@ class LingvistAdvancedNote(Note):
         self.program = program 
 
     def make_prev(self):
-        return ('', '')
+        program = self.program
+        sentence = program.findChild(QWidget, "Sentence").text()
+        words = program.findChild(QWidget, "Words").text()
+        definition = '<b>Definition</b>: ' + program.findChild(QWidget, "Definition").text()
+
+        for word in listify(words):
+            sentence = re.sub(r"\b"+word+r"\b",
+                    "<b>[...]</b>",
+                    sentence)
+
+        incomp_sentence = sentence + "</br></br>" + definition 
+        miss_words = '<b> -> ' + words + '</b>'
+
+        print (program.findChild(QWidget, "Incomplete Sentence"))
+
+        program.findChild(QWidget, "Incomplete Sentence").setHtml(incomp_sentence)
+        program.findChild(QWidget, "Missing Words & Image").setHtml(miss_words)
+
 
     def make_note(self):
         return ('', '')
