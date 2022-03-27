@@ -30,11 +30,8 @@ class Layout(QGridLayout):
     def __init__(self, program):
         super().__init__()
         self.types = [Lingvist(self, program), LingvistAdvanced(self, program)]
-        '''
-        self.cycle = cycle.Cycle(types)
+        self.cycle = cycle.Cycle(self.types)
         self.now = self.cycle.now
-        '''
-        self.now = self.types[0]
         self.grid_i_after_header = 0
         self.setSpacing(8)
 
@@ -42,12 +39,16 @@ class Layout(QGridLayout):
         grid_i = 0  # 'i' = row of the grid
         grid_i = self.load_header(grid_i, program)
         self.now.load_body(self)
-        self.types[1].clean()
+        # the loop bellow avoids a weird behavior, where the last widged
+        # of the objects_list of the second layout is added on the top left 
+        # layout corner of the first
+        for layout_type in filter(lambda x: x != self.now, self.types):
+            layout_type.clean()
         program.setLayout(self)
 
     def change(self):
         self.now.clean()
-        self.now = self.now.next()
+        self.now = self.cycle.next()
         self.now.load_body(self)
         self.now.show()
 
@@ -93,9 +94,6 @@ class Lingvist(LayoutType):
                 Button('Add Note', program)
                 ]
 
-    def next(self):
-        return self.grid.types[1]
-
 class LingvistAdvanced(LayoutType):
     def __init__(self, grid, program):
         super().__init__(grid)
@@ -108,9 +106,6 @@ class LingvistAdvanced(LayoutType):
                 TextBox('Missing Words & Image', program),
                 Button('Add Note', program)
                 ]
-
-    def next(self):
-        return self.grid.types[0]
 
 class HLine(QFrame):
     
