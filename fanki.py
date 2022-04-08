@@ -5,13 +5,13 @@ created by Gustavo Korzune Gurgel
 '''
 import sys
 from PyQt5.QtWidgets import (QApplication, QLabel, QWidget, QLineEdit,
-                             QTextEdit, QGridLayout, QPushButton, QFrame,
-                             QDesktopWidget)
+                             QTextEdit, QGridLayout, QPushButton, QFrame)
 from PyQt5.QtGui import (QFont, QImageReader, QTextDocument)
 from PyQt5.QtCore import (QUrl, QFileInfo, QFile, QIODevice)
 import translators as ts
 import cycle
 import note
+import ankiConnect
 
 
 class Program(QWidget):
@@ -167,7 +167,10 @@ class Button(QPushButton):
         preview.make()
 
     def add_note(self, layout, program):
-        pass
+        new_note = note.Note(layout.now.type, program)
+        parsed_note = new_note.type.make()
+        ankiConnect.add(parsed_note)
+        print('Succesfully added!')
 
 class TextBox(QTextEdit):
     def __init__(self, name, program):
@@ -181,7 +184,6 @@ class TextBox(QTextEdit):
             self.setFont(QFont('Helvetica', 15, weight=75))
         else:    
             self.setFont(QFont('Helvetica', 15))
-
     def add(self, line, grid):
         grid.addWidget(self.label, line, 0)
         grid.addWidget(self, line + 1, 0)
@@ -205,6 +207,8 @@ class TextBox(QTextEdit):
         return (mime.hasImage() 
                 or mime.hasUrls() 
                 or super().canInsertFromMimeData(mime))
+
+    # the code bellow was addapted from https://stackoverflow.com/questions/3254652/several-ways-of-placing-an-image-in-a-qtextedit
 
     def insertFromMimeData(self, mime):
 

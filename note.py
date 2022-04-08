@@ -9,7 +9,7 @@ class Preview:
         self.note = Note(mode, program)
 
     def make(self):
-        self.note.type.make_prev()
+        self.note.type.prev()
         
 class Note:
 
@@ -20,14 +20,14 @@ class Note:
                 }
 
         self.type = switch.get(mode)(program)
-        parsed_note = self.type.make_note()
+        content = self.type.make()
 
 class LingvistNote(Note):
     
     def __init__(self, program):
         self.program = program 
 
-    def make_prev(self):
+    def prev(self):
         program = self.program
         sentence = program.findChild(QWidget, "Sentence").text()
         words = program.findChild(QWidget, "Words").text()
@@ -51,20 +51,19 @@ class LingvistNote(Note):
         program.findChild(QWidget, "Back").setText(back)
 
 
-    def make_note(self):
+    def make(self):
         program = self.program
 
         deck = program.findChild(QWidget, "Deck").text()
         front = program.findChild(QWidget, "Front").toHtml()
         back = program.findChild(QWidget, "Back").toHtml()
         synonyms = '<b>Synonyms</b>: ' + program.findChild(QWidget, "Synonyms").text()
-
-        note = {'deckName': deck,
-                'modelName': 'Fanki: Lingvist',
-                'fields': {'Front': front,
-                           'Back': back,
-                           'Synonyms' : synonyms}}
-        return note
+        notes = [{'deckName': deck,
+                  'modelName': 'Fanki: Lingvist',
+                  'fields': {'Front': front,
+                             'Back': back,
+                             'Synonyms' : synonyms}}]
+        return notes
 
 
 class LingvistAdvancedNote(Note):
@@ -72,7 +71,7 @@ class LingvistAdvancedNote(Note):
     def __init__(self, program):
         self.program = program 
 
-    def make_prev(self):
+    def prev(self):
         program = self.program
         sentence = program.findChild(QWidget, "Sentence").text()
         words = program.findChild(QWidget, "Words").text()
@@ -92,7 +91,7 @@ class LingvistAdvancedNote(Note):
         program.findChild(QWidget, "Missing Words & Image").setHtml(miss_words)
 
 
-    def make_note(self):
+    def make(self):
         return ('', '')
 
 def listify(s):
