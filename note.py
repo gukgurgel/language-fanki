@@ -1,6 +1,6 @@
 import re
 from PyQt5.QtWidgets import QWidget
-
+import os
 
 class Preview:
 
@@ -20,7 +20,38 @@ class Note:
                 }
 
         self.type = switch.get(mode)(program)
-        content = self.type.make()
+
+    def return_images(self, content, field):
+        # find images in the markdown create json with the path
+        # and name of the image file and remove it from the markdown
+
+        imgs_name = re.findall(r"(?<=\!\[image\]\()\w+(?=\))", content)
+        content = re.sub(r"\!\[image\]\(\w+\)","", content)
+        imgs_parsed = []
+        
+        path_to_media = os.path.dirname(os.path.abspath(__file__)) + '/media/'
+
+        for name in imgs_name:
+            now = {
+                    "path": path_to_media + name,
+                    "filename": name,
+                    "fields": [field]
+                  }
+            imgs_parsed.append(now)
+        return (imgs_parsed, content)
+
+    def markdown_to_html(self, field):
+        # transform **word** in {{c1::word}} and \n in <br>
+
+        field = re.sub(r"\*\*\b","{{c1::", field) 
+        field = re.sub(r"\b\*\*","}}", field) 
+        field = re.sub(r"\n","<br>", field) 
+        # removethere are some unexpected <br> tags (added by
+        # image?)
+        field = re.sub(r"(<br>)+$","<br><br>", field) 
+
+        return field
+
 
 class LingvistNote(Note):
     
@@ -55,14 +86,24 @@ class LingvistNote(Note):
         program = self.program
 
         deck = program.findChild(QWidget, "Deck").text()
-        front = program.findChild(QWidget, "Front").toHtml()
-        back = program.findChild(QWidget, "Back").toHtml()
+        front = program.findChild(QWidget, "Front").toMarkdown()
+        back = program.findChild(QWidget, "Back").toPlainText()
+        (imgs_front, front) = self.return_images(front, "Front")
+        front = self.markdown_to_html(front)
+
+        # boldfy the text of back
+        back = '<b>' + back + '</b>'
+
         synonyms = '<b>Synonyms</b>: ' + program.findChild(QWidget, "Synonyms").text()
+        
+
         notes = [{'deckName': deck,
                   'modelName': 'Fanki: Lingvist',
                   'fields': {'Front': front,
                              'Back': back,
-                             'Synonyms' : synonyms}}]
+                             'Synonyms' : synonyms},
+                  'picture': imgs_front}]
+                  
         return notes
 
 
@@ -82,10 +123,8 @@ class LingvistAdvancedNote(Note):
                     "<b>[...]</b>",
                     sentence)
 
-        incomp_sentence = sentence + "</br></br>" + definition 
+        incomp_sentence = sentence + "<br><br>" + definition 
         miss_words = '<b> -> ' + words + '</b>'
-
-        print (program.findChild(QWidget, "Incomplete Sentence"))
 
         program.findChild(QWidget, "Incomplete Sentence").setHtml(incomp_sentence)
         program.findChild(QWidget, "Missing Words & Image").setHtml(miss_words)

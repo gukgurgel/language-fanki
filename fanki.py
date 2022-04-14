@@ -9,6 +9,7 @@ from PyQt5.QtWidgets import (QApplication, QLabel, QWidget, QLineEdit,
 from PyQt5.QtGui import (QFont, QImageReader, QTextDocument)
 from PyQt5.QtCore import (QUrl, QFileInfo, QFile, QIODevice)
 import translators as ts
+import datetime
 import cycle
 import note
 import ankiConnect
@@ -55,6 +56,9 @@ class Layout(QGridLayout):
     def load_header(self, grid_i, program):
         grid_i = Button('Change Mode', program).add(grid_i, self)
         grid_i = LineBox('Deck', program).add(grid_i, self)
+        grid_i = LineBox('Sentence', program).add(grid_i, self)
+        grid_i = LineBox('Words', program).add(grid_i, self)
+        grid_i = LineBox('Synonyms', program).add(grid_i, self)
         self.grid_i_after_header = grid_i
         return grid_i
 
@@ -86,8 +90,7 @@ class Lingvist(LayoutType):
         super().__init__(grid)
         self.type = 'Lingvist'
         self.objects_list = [
-                LineBox('Sentence', program), LineBox('Words', program),
-                LineBox('Synonyms', program), Button('Translate', program),
+                Button('Translate', program),
                 LineBox('Translated Sentence', program),
                 LineBox('Translated Words', program), Button('Preview', program),
                 HLine(), TextBox('Front', program), TextBox('Back', program),
@@ -99,8 +102,7 @@ class LingvistAdvanced(LayoutType):
         super().__init__(grid)
         self.type = 'LingvistAdvanced'
         self.objects_list = [
-                LineBox('Sentence', program), LineBox('Words', program),
-                LineBox('Definition', program), LineBox('Synonyms', program),
+                LineBox('Definition', program),
                 Button('Preview', program), HLine(), 
                 TextBox('Incomplete Sentence', program),
                 TextBox('Missing Words & Image', program),
@@ -169,6 +171,7 @@ class Button(QPushButton):
     def add_note(self, layout, program):
         new_note = note.Note(layout.now.type, program)
         parsed_note = new_note.type.make()
+        #print(parsed_note)
         ankiConnect.add(parsed_note)
         print('Succesfully added!')
 
@@ -184,6 +187,7 @@ class TextBox(QTextEdit):
             self.setFont(QFont('Helvetica', 15, weight=75))
         else:    
             self.setFont(QFont('Helvetica', 15))
+
     def add(self, line, grid):
         grid.addWidget(self.label, line, 0)
         grid.addWidget(self, line + 1, 0)
@@ -213,13 +217,14 @@ class TextBox(QTextEdit):
     def insertFromMimeData(self, mime):
 
         if mime.hasImage():
-            i = 1
-            url = QUrl("dropped_image_" + str(i))
-            i += 1
+            tag = datetime.datetime.now().time().strftime("%H%M%S")
+            print(tag)
+            url = QUrl("dropped_image_" + str(tag))
             self.dropImage(url, mime.imageData())
+            mime.imageData().save("media/" + url.toString(), "png") 
         elif mime.hasUrls():
             for url in mime.urls():
-                info = QFileInfo.info(url.toLocalFile()) 
+                info = QFileInfo(url.toLocalFile()) 
                 ext = info.suffix().lower().encode('latin-1')
                 if ext in QImageReader.supportedImageFormats():
                     self.dropImage(url, info.filePath())
@@ -236,7 +241,7 @@ class TextBox(QTextEdit):
 
     def dropTextFile(self, url):
         file = QFile(url.toLocalFile())
-        if file.open(QIODevice.QReadOnly | QIODevice.QText):
+        if file.open(QIODevice.ReadOnly | QIODevice.Text):
             self.textCursor().insertText(file.readAll())
 
 class LineBox(QLineEdit):
