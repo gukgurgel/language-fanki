@@ -10,10 +10,10 @@ from PyQt5.QtGui import (QFont, QImageReader, QTextDocument)
 from PyQt5.QtCore import (QUrl, QFileInfo, QFile, QIODevice)
 import translators as ts
 import datetime
+import os
 import cycle
 import note
 import ankiConnect
-
 
 class Program(QWidget):
 
@@ -54,14 +54,30 @@ class Layout(QGridLayout):
         self.now.show()
 
     def load_header(self, grid_i, program):
+        self.header_objects = [
+                Button('Change Mode', program),
+                LineBox('Deck', program),
+                LineBox('Sentence', program),
+                LineBox('Words', program),
+                LineBox('Synonyms', program)
+                ]
+        '''
         grid_i = Button('Change Mode', program).add(grid_i, self)
         grid_i = LineBox('Deck', program).add(grid_i, self)
         grid_i = LineBox('Sentence', program).add(grid_i, self)
         grid_i = LineBox('Words', program).add(grid_i, self)
         grid_i = LineBox('Synonyms', program).add(grid_i, self)
+        '''
+        for obj in self.header_objects:
+            grid_i = obj.add(grid_i, self)
         self.grid_i_after_header = grid_i
         return grid_i
 
+    def clear_content(self):
+        for obj in (self.now.objects_list + self.header_objects):
+            # deck name doesn't need to be typed for every new note
+            if obj != self.header_objects[1]: 
+                obj.clear()
 
 class LayoutType:
     def __init__(self, grid):
@@ -120,6 +136,11 @@ class HLine(QFrame):
         layout.addWidget(self, line, 0) 
         return line + 1
 
+    def clear(self):
+        # avoids an error when this method is called by
+        # Layout's clear_content
+        pass
+
 class Button(QPushButton):
 
     def __init__(self, name, program):
@@ -133,6 +154,11 @@ class Button(QPushButton):
     def add(self, line, layout):
         layout.addWidget(self, line, 0)
         return line + 1
+
+    def clear(self):
+        # avoids an error when this method is called by
+        # Layout's clear_content
+        pass
 
     def processor(self):
         sender = self.program.sender()
@@ -171,8 +197,15 @@ class Button(QPushButton):
     def add_note(self, layout, program):
         new_note = note.Note(layout.now.type, program)
         parsed_note = new_note.type.make()
-        #print(parsed_note)
+
         ankiConnect.add(parsed_note)
+
+        layout.clear_content()
+        # delete old medias
+        media_dir = os.path.dirname(os.path.abspath(__file__)) + "/media/"
+        for media in os.listdir(media_dir): 
+            os.remove(media_dir + media) 
+
         print('Succesfully added!')
 
 class TextBox(QTextEdit):

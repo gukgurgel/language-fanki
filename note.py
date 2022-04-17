@@ -43,9 +43,17 @@ class Note:
     def markdown_to_html(self, field):
         # transform **word** in {{c1::word}} and \n in <br>
 
-        field = re.sub(r"\*\*\b","{{c1::", field) 
-        field = re.sub(r"\b\*\*","}}", field) 
+        # cloze
+        field = re.sub(r"\*\*{\b","{{c1::", field) 
+        field = re.sub(r"\b}\*\*","}}", field) 
+
+        # real bold text
+        field = re.sub(r"\*\*\b","<b>", field) 
+        field = re.sub(r"\b\*\*","</b>", field) 
+
+        # new line 
         field = re.sub(r"\n","<br>", field) 
+
         # removethere are some unexpected <br> tags (added by
         # image?)
         field = re.sub(r"(<br>)+$","<br><br>", field) 
@@ -67,7 +75,7 @@ class LingvistNote(Note):
 
         for word in listify(words):
             sentence = re.sub(r"\b"+word+r"\b",
-                    "<b>"+word+"</b>",
+                    "<b>{"+word+"}</b>",
                     sentence)
 
         for tr_word in listify(tr_words):
