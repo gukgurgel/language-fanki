@@ -216,7 +216,7 @@ class TextBox(QTextEdit):
         name_html = ('<center><h2>' + name + '</h2></center>')
         self.label = QLabel(name_html)
         self.label.setTextFormat(2)
-        if name == 'Back':
+        if name in ['Back', 'Missing Words & Image']:
             self.setFont(QFont('Helvetica', 15, weight=75))
         else:    
             self.setFont(QFont('Helvetica', 15))

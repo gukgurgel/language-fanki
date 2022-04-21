@@ -42,19 +42,22 @@ class Note:
 
     def markdown_to_html(self, field):
         # transform **word** in {{c1::word}} and \n in <br>
-
         # cloze
         field = re.sub(r"\*\*{\b","{{c1::", field) 
         field = re.sub(r"\b}\*\*","}}", field) 
 
         # real bold text
-        field = re.sub(r"\*\*\b","<b>", field) 
-        field = re.sub(r"\b\*\*","</b>", field) 
+        field = re.sub(r"\*\*(?=\S)","<b>", field) 
+        field = re.sub(r"(?=\S)\*\*","</b>", field) 
 
-        # new line 
+        # avoid weird behavior, where whitespaces are replaced by \n by the toMarkdown method 
+        field = re.sub(r"(?<!(\n))(\n){1}(?!(\n))", "", field)
+
+        # new line
         field = re.sub(r"\n","<br>", field) 
 
-        # removethere are some unexpected <br> tags (added by
+
+        # remove some unexpected <br> tags at the and of the front field (added by
         # image?)
         field = re.sub(r"(<br>)+$","<br><br>", field) 
 
@@ -128,19 +131,67 @@ class LingvistAdvancedNote(Note):
 
         for word in listify(words):
             sentence = re.sub(r"\b"+word+r"\b",
-                    "<b>[...]</b>",
+                    "<b>{"+word+"}</b>",
                     sentence)
 
         incomp_sentence = sentence + "<br><br>" + definition 
-        miss_words = '<b> -> ' + words + '</b>'
+        miss_words = ' -> ' + words
 
         program.findChild(QWidget, "Incomplete Sentence").setHtml(incomp_sentence)
         program.findChild(QWidget, "Missing Words & Image").setHtml(miss_words)
 
 
     def make(self):
-        return ('', '')
+        program = self.program
+
+        deck = program.findChild(QWidget, "Deck").text()
+        incomp_sentence = program.findChild(QWidget, "Incomplete Sentence").toMarkdown()
+        missing_words = program.findChild(QWidget, "Missing Words & Image").toMarkdown()
+        (imgs_is, incomp_sentence) = self.return_images(incomp_sentence, "Incomplete Sentence")
+        (imgs_mw, missing_words) = self.return_images(missing_words, "Missing Words & Image")
+        incomp_sentence_direct = self.markdown_to_html(incomp_sentence)
+        incomp_sentence_reverse = self.markdown_to_html_rev(incomp_sentence)
+        missing_words = self.markdown_to_html(missing_words)
+
+        synonyms = '<b>Synonyms</b>: ' + program.findChild(QWidget, "Synonyms").text()
+        
+
+        notes = [{'deckName': deck,
+                  'modelName': 'Fanki: LingvistAdvanced',
+                  'fields': {'Incomplete Sentence': incomp_sentence_direct,
+                             'Missing Words & Image': missing_words,
+                             'Synonyms' : synonyms},
+                  'picture': imgs_is + imgs_mw},
+                  {'deckName': deck,
+                  'modelName': 'Fanki: LingvistAdvanced (Reverse)',
+                  'fields': {'Missing Words & Image': missing_words,
+                             'Incomplete Sentence': incomp_sentence_reverse,
+                             'Synonyms' : synonyms},
+                  'picture': imgs_is + imgs_mw}]
+                  
+        return notes
+
+    def markdown_to_html_rev(self, field):
+        # transform **word** in {{c1::word}} and \n in <br>
+        
+        # cloze
+        field = re.sub(r"\*\*{\b","<b>", field) 
+        field = re.sub(r"\b}\*\*","</b>", field) 
+
+        # real bold text
+        field = re.sub(r"\*\*\b","<b>", field) 
+        field = re.sub(r"\b\*\*","</b>", field) 
+
+        # new line 
+        field = re.sub(r"\n","<br>", field) 
+
+        # removethere are some unexpected <br> tags (added by
+        # image?)
+        field = re.sub(r"(<br>)+$","<br><br>", field) 
+
+        return field
+
 
 def listify(s):
-    return re.split(' +', s)  # ' +' for one or more occuring
-    # spaces as delimiter for a string
+
+    return re.split(r'\s+', s) # spaces as delimiter for a string
