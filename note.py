@@ -29,7 +29,7 @@ class Note:
         content = re.sub(r"\!\[image\]\(\w+\)","", content)
         imgs_parsed = []
         
-        path_to_media = os.path.dirname(os.path.abspath(__file__)) + '/media/'
+        path_to_media = '/tmp/'
 
         for name in imgs_name:
             now = {
@@ -39,23 +39,27 @@ class Note:
                   }
             imgs_parsed.append(now)
         return (imgs_parsed, content)
+        #return (imgs_parsed, 
 
     def markdown_to_html(self, field):
-        # transform **word** in {{c1::word}} and \n in <br>
+        # transform **{word}** in {{c1::word}},
+        # **word** in <b>word</b> and \n in <br>
+
         # cloze
-        field = re.sub(r"\*\*{\b","{{c1::", field) 
-        field = re.sub(r"\b}\*\*","}}", field) 
+        field = re.sub( r"\*{2}\{([^*\}]*)\}\*{2}"
+                      , r"{{c1::\1}}"
+                      , field)
 
         # real bold text
-        field = re.sub(r"\*\*(?=\S)","<b>", field) 
-        field = re.sub(r"(?=\S)\*\*","</b>", field) 
+        field = re.sub( r"\*{2}([^*\}]*)\*{2}"
+                      , r"<b>\1</b>"
+                      , field)
 
         # avoid weird behavior, where whitespaces are replaced by \n by the toMarkdown method 
-        field = re.sub(r"(?<!(\n))(\n){1}(?!(\n))", "", field)
+        field = re.sub(r"(?<!(\n))(\n){1}(?!(\n))", " ", field)
 
         # new line
         field = re.sub(r"\n","<br>", field) 
-
 
         # remove some unexpected <br> tags at the and of the front field (added by
         # image?)
@@ -71,9 +75,9 @@ class LingvistNote(Note):
 
     def prev(self):
         program = self.program
-        sentence = program.findChild(QWidget, "Sentence").text()
+        sentence = str(program.findChild(QWidget, "Sentence").text())
         words = program.findChild(QWidget, "Words").text()
-        tr_sentence = program.findChild(QWidget, "Translated Sentence").text()
+        tr_sentence = str(program.findChild(QWidget, "Translated Sentence").text())
         tr_words = program.findChild(QWidget, "Translated Words").text()
 
         for word in listify(words):
@@ -125,7 +129,7 @@ class LingvistAdvancedNote(Note):
 
     def prev(self):
         program = self.program
-        sentence = program.findChild(QWidget, "Sentence").text()
+        sentence = str(program.findChild(QWidget, "Sentence").text())
         words = program.findChild(QWidget, "Words").text()
         definition = '<b>Definition</b>: ' + program.findChild(QWidget, "Definition").text()
 
@@ -173,14 +177,12 @@ class LingvistAdvancedNote(Note):
 
     def markdown_to_html_rev(self, field):
         # transform **word** in {{c1::word}} and \n in <br>
-        
-        # cloze
-        field = re.sub(r"\*\*{\b","<b>", field) 
-        field = re.sub(r"\b}\*\*","</b>", field) 
 
-        # real bold text
-        field = re.sub(r"\*\*\b","<b>", field) 
-        field = re.sub(r"\b\*\*","</b>", field) 
+        # cloze or bold to html bold
+
+        field = re.sub( r"\*{2}\{?([^*\}]*)\}?\*{2}"
+                      , r"<b>\1</b>"
+                      , field)
 
         # new line 
         field = re.sub(r"\n","<br>", field) 
@@ -188,6 +190,9 @@ class LingvistAdvancedNote(Note):
         # removethere are some unexpected <br> tags (added by
         # image?)
         field = re.sub(r"(<br>)+$","<br><br>", field) 
+
+        # avoid weird behavior, where whitespaces are replaced by \n by the toMarkdown method 
+        field = re.sub(r"(?<!(\n))(\n){1}(?!(\n))", " ", field)
 
         return field
 

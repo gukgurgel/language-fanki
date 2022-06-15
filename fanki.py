@@ -197,14 +197,15 @@ class Button(QPushButton):
     def add_note(self, layout, program):
         new_note = note.Note(layout.now.type, program)
         parsed_note = new_note.type.make()
+        print(parsed_note)
 
         ankiConnect.add(parsed_note)
 
         layout.clear_content()
         # delete old medias
-        media_dir = os.path.dirname(os.path.abspath(__file__)) + "/media/"
-        for media in os.listdir(media_dir): 
-            os.remove(media_dir + media) 
+        #media_dir = os.path.dirname(os.path.abspath(__file__)) + "/media/"
+        #for media in os.listdir(media_dir): 
+        #    os.remove(media_dir + media) 
 
         print('Succesfully added!')
 
@@ -251,15 +252,15 @@ class TextBox(QTextEdit):
 
         if mime.hasImage():
             tag = datetime.datetime.now().time().strftime("%H%M%S")
-            print(tag)
             url = QUrl("dropped_image_" + str(tag))
             self.dropImage(url, mime.imageData())
-            mime.imageData().save("media/" + url.toString(), "png") 
+            mime.imageData().save("/tmp/" + url.toString(), "png") 
         elif mime.hasUrls():
             for url in mime.urls():
                 info = QFileInfo(url.toLocalFile()) 
                 ext = info.suffix().lower().encode('latin-1')
                 if ext in QImageReader.supportedImageFormats():
+                    print(str(info.filePath()))
                     self.dropImage(url, info.filePath())
                 else:
                     self.dropTextFile(url)
