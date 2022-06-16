@@ -28,5 +28,4 @@ def invoke(action, **params):
 
 def add(notes):
     for now in notes:
-        print(now)
         invoke('addNote', note=now)

@@ -45,6 +45,11 @@ class Note:
         # transform **{word}** in {{c1::word}},
         # **word** in <b>word</b> and \n in <br>
 
+        # avoid weird behavior, where whitespaces are replaced by \n by the toMarkdown method 
+        field = re.sub(r"(?<!(\n))(\n{1}\*{2})(?!(\n))", "**", field)
+        field = re.sub(r"(?<!(\n))(\*{2}\n{1})(?!(\n))", "**", field)
+        field = re.sub(r"(?<!(\n))(\n{1})(?!(\n))", " ", field)
+
         # cloze
         field = re.sub( r"\*{2}\{([^*\}]*)\}\*{2}"
                       , r"{{c1::\1}}"
@@ -54,9 +59,6 @@ class Note:
         field = re.sub( r"\*{2}([^*\}]*)\*{2}"
                       , r"<b>\1</b>"
                       , field)
-
-        # avoid weird behavior, where whitespaces are replaced by \n by the toMarkdown method 
-        field = re.sub(r"(?<!(\n))(\n){1}(?!(\n))", " ", field)
 
         # new line
         field = re.sub(r"\n","<br>", field) 
@@ -180,6 +182,11 @@ class LingvistAdvancedNote(Note):
 
         # cloze or bold to html bold
 
+        # avoid weird behavior, where new lines are added by the toMarkdown method 
+        field = re.sub(r"(?<!(\n))(\n{1}\*{2})(?!(\n))", "**", field)
+        field = re.sub(r"(?<!(\n))(\*{2}\n{1})(?!(\n))", "**", field)
+        field = re.sub(r"(?<!(\n))(\n{1})(?!(\n))", " ", field)
+
         field = re.sub( r"\*{2}\{?([^*\}]*)\}?\*{2}"
                       , r"<b>\1</b>"
                       , field)
@@ -190,9 +197,6 @@ class LingvistAdvancedNote(Note):
         # removethere are some unexpected <br> tags (added by
         # image?)
         field = re.sub(r"(<br>)+$","<br><br>", field) 
-
-        # avoid weird behavior, where whitespaces are replaced by \n by the toMarkdown method 
-        field = re.sub(r"(?<!(\n))(\n){1}(?!(\n))", " ", field)
 
         return field
 
